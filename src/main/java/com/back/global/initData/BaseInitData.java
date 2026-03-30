@@ -52,14 +52,14 @@ public class BaseInitData {
 
     @Transactional
     public void work1() { // 회원 먼저 생성 후 글 생성.
-        if(memberService.count() > 0) {
+        if (memberService.count() > 0) {
             return;
         }
 
-        memberService.join("system", "system", "시스템");
-        memberService.join("admin", "admin", "운영자");
-        memberService.join("user1", "1234", "유저1");
-        memberService.join("user2", "1234", "유저2");
-        memberService.join("user3", "1234", "유저3");
+        memberService.join("system", "system", "시스템", "system");
+        memberService.join("admin", "admin", "운영자", "admin");
+        memberService.join("user1", "1234", "유저1", "user1");
+        memberService.join("user2", "1234", "유저2", "user2");
+        memberService.join("user3", "1234", "유저3", "user3");
     }
 }
