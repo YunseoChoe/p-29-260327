@@ -65,6 +65,8 @@ public class ApiV1MemberController {
             throw new ServiceException("401-2", "비밀번호가 일치하지 않습니다.");
         }
 
+        rq.addCookie("apiKey", actor.getApiKey());
+
         return new RsData(
                 "%s님 환영합니다.".formatted(actor.getName()),
                 "200-1",
@@ -72,6 +74,16 @@ public class ApiV1MemberController {
         );
     }
 
+    @DeleteMapping("/logout")
+    public RsData<Void> logout() {
+
+        rq.deleteCookie("apiKey"); // 쿠키 삭제
+
+        return new RsData(
+                "로그아웃 되었습니다.",
+                "200-1"
+        );
+    }
 
     @GetMapping("/me")
     public MemberDto me() {
