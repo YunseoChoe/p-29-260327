@@ -8,12 +8,11 @@ import lombok.NoArgsConstructor;
 
 @Entity
 @Getter
-//@AllArgsConstructor
 @NoArgsConstructor
 public class Member extends BaseEntity {
 
     @Column(unique = true)
-    private String username; // id 역할
+    private String username;
     private String password;
     private String nickname;
     @Column(unique = true)
@@ -26,8 +25,12 @@ public class Member extends BaseEntity {
         this.apiKey = apiKey;
     }
 
+    public Member(int id, String name) {
+        this.setId(id);
+        this.nickname = name;
+    }
+
     public String getName() {
         return nickname;
     }
-
 }

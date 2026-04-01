@@ -6,6 +6,7 @@ import com.back.global.exception.ServiceException;
 import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Service;
 
+import java.util.Map;
 import java.util.Optional;
 import java.util.UUID;
 
@@ -14,13 +15,12 @@ import java.util.UUID;
 public class MemberService {
 
     private final MemberRepository memberRepository;
+    private final AuthTokenService authTokenService;
 
-    // 테스트용
     public Member join(String username, String password, String nickname) {
         return join(username, password, nickname, UUID.randomUUID().toString());
     }
 
-    // UUID apiKey 오버라이딩.
     public Member join(String username, String password, String nickname, String apiKey) {
 
         findByUsername(username).ifPresent(
@@ -38,14 +38,22 @@ public class MemberService {
     }
 
     public Optional<Member> findByUsername(String username) {
-//        return memberRepository.findAll().stream() // Application 차원.
-//                .filter(m -> m.getUsername().equals(username))
-//                .findFirst();
-
-        return memberRepository.findByUsername(username); // DB 차원.
+        return memberRepository.findByUsername(username);
     }
 
     public Optional<Member> findByApiKey(String apiKey) {
         return memberRepository.findByApiKey(apiKey);
+    }
+
+    public String genAccessToken(Member member) {
+        return authTokenService.genAccessToken(member);
+    }
+
+    public Map<String, Object> payloadOrNull(String jwt) {
+        return authTokenService.payloadOrNull(jwt);
+    }
+
+    public Optional<Member> findById(int id) {
+        return memberRepository.findById(id);
     }
 }
