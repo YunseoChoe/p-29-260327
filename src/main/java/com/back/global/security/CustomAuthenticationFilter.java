@@ -114,7 +114,6 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
                     .orElseThrow(() -> new ServiceException("401-4", "API 키가 유효하지 않습니다."));
         }
 
-        // accessToken이 만료되면 바로 재발급. (프론트가 아닌 백엔드에서 처리하므로 프론트는 401 에러를 만나지 않음)
         if (isAccessTokenExists && !isAccessTokenValid) {
             String newAccessToken = memberService.genAccessToken(member);
             rq.addCookie("accessToken", newAccessToken);
@@ -127,12 +126,12 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
                 member.getUsername(),
                 member.getPassword(),
                 member.getNickname(),
-                List.of()
+                member.getAuthorities()
         );
 
         Authentication authentication = new UsernamePasswordAuthenticationToken(
                 user,
-                null,
+                user.getPassword(),
                 user.getAuthorities()
         );
 
