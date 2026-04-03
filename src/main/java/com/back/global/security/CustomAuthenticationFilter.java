@@ -4,6 +4,7 @@ import com.back.domain.member.entity.Member;
 import com.back.domain.member.service.MemberService;
 import com.back.global.exception.ServiceException;
 import com.back.global.rq.Rq;
+import com.back.global.rsData.RsData;
 import jakarta.servlet.FilterChain;
 import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
@@ -30,8 +31,27 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
 
     @Override
     protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+
         logger.debug("CustomAuthenticationFilter is called");
 
+        // 우리 방식대로 직접 예외 처리
+        try {
+            authenticate(request, response, filterChain);
+        } catch (ServiceException e) {
+            RsData<Void> rsData = e.getRsData();
+
+            response.setContentType("application/json");
+            response.setStatus(rsData.getStatusCode());
+            response.getWriter().write("""
+                    {
+                        "resultCode": "%s",
+                        "msg": "%s"
+                    }
+                    """.formatted(rsData.resultCode(), rsData.msg()));
+        }
+    }
+
+    private void authenticate(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws IOException, ServletException {
         if(!request.getRequestURI().startsWith("/api/")) {
             filterChain.doFilter(request, response);
             return;
@@ -53,7 +73,8 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
                 throw new ServiceException("401-2", "잘못된 형식의 인증데이터입니다.");
             }
 
-            String[] headerAuthorizationBits = authorizationHeader.split(" ", 3);            apiKey = authorizationHeader.replace("Bearer ", "");
+            String[] headerAuthorizationBits = authorizationHeader.split(" ", 3);
+            apiKey = authorizationHeader.replace("Bearer ", "");
 
             apiKey = headerAuthorizationBits[1];
             accessToken = headerAuthorizationBits.length == 3 ? headerAuthorizationBits[2] : "";
@@ -90,6 +111,7 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
                     .orElseThrow(() -> new ServiceException("401-4", "API 키가 유효하지 않습니다."));
         }
 
+        // accessToken이 만료되면 바로 재발급 처리. (프론트가 아닌 백엔드에서 처리하므로 프론트는 401 에러를 만나지 않음)
         if (isAccessTokenExists && !isAccessTokenValid) {
             String newAccessToken = memberService.genAccessToken(member);
             rq.addCookie("accessToken", newAccessToken);
@@ -111,9 +133,9 @@ public class CustomAuthenticationFilter extends OncePerRequestFilter {
 
         SecurityContextHolder
                 .getContext()
-                .setAuthentication(authentication);
+                .setAuthentication(authentication); // 저장
+
 
         filterChain.doFilter(request, response);
     }
-
 }

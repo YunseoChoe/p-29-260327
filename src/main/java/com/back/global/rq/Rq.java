@@ -2,7 +2,6 @@ package com.back.global.rq;
 
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.service.MemberService;
-import com.back.global.exception.ServiceException;
 import jakarta.servlet.http.Cookie;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
@@ -10,7 +9,6 @@ import lombok.RequiredArgsConstructor;
 import org.springframework.stereotype.Component;
 
 import java.util.Arrays;
-import java.util.Map;
 import java.util.Optional;
 
 @Component
@@ -23,6 +21,9 @@ public class Rq {
 
     public Member getActor() {
 
+        return new Member(3, "user1", "유저1"); // 임시
+
+        /*
         String authorizationHeader = getHeader("Authorization", "");
 
         String apiKey;
@@ -34,7 +35,8 @@ public class Rq {
                 throw new ServiceException("401-2", "잘못된 형식의 인증데이터입니다.");
             }
 
-            String[] headerAuthorizationBits = authorizationHeader.split(" ", 3);            apiKey = authorizationHeader.replace("Bearer ", "");
+            String[] headerAuthorizationBits = authorizationHeader.split(" ", 3);
+            apiKey = authorizationHeader.replace("Bearer ", "");
 
             apiKey = headerAuthorizationBits[1];
             accessToken = headerAuthorizationBits.length == 3 ? headerAuthorizationBits[2] : "";
@@ -71,6 +73,7 @@ public class Rq {
                     .orElseThrow(() -> new ServiceException("401-4", "API 키가 유효하지 않습니다."));
         }
 
+        // accessToken이 만료되면 바로 재발급 (프론트가 아닌 백엔드에서 처리하므로 프론트는 401 에러를 만나지 않음)
         if (isAccessTokenExists && !isAccessTokenValid) {
             String newAccessToken = memberService.genAccessToken(member);
             addCookie("accessToken", newAccessToken);
@@ -78,6 +81,7 @@ public class Rq {
         }
 
         return member;
+         */
     }
 
     public void setHeader(String name, String value) {

@@ -22,8 +22,9 @@ public class SecurityConfig {
                 .authorizeHttpRequests((authorizeHttpRequests) -> authorizeHttpRequests
                         .requestMatchers("/favicon.ico").permitAll()
                         .requestMatchers("/h2-console/**").permitAll()
-                        .requestMatchers("/**").permitAll()
-                        .anyRequest().authenticated())
+                        .requestMatchers("/api/v1/members/login", "/api/v1/members/join").permitAll()
+                        // .requestMatchers("/**").permitAll() // 전체 경로 허용.
+                        .anyRequest().authenticated()) // 나머지 경로는 인증 필요.
                 .csrf((csrf) -> csrf.disable())
                 .headers((headers) -> headers
                         .addHeaderWriter(new XFrameOptionsHeaderWriter(
