@@ -1,32 +1,51 @@
-package com.back.global.rq;
+package com.back.global.security;
 
 import com.back.domain.member.entity.Member;
 import com.back.domain.member.service.MemberService;
 import com.back.global.exception.ServiceException;
-import jakarta.servlet.http.Cookie;
+import com.back.global.rq.Rq;
+import jakarta.servlet.FilterChain;
+import jakarta.servlet.ServletException;
 import jakarta.servlet.http.HttpServletRequest;
 import jakarta.servlet.http.HttpServletResponse;
 import lombok.RequiredArgsConstructor;
+import org.springframework.security.authentication.UsernamePasswordAuthenticationToken;
+import org.springframework.security.core.Authentication;
+import org.springframework.security.core.context.SecurityContextHolder;
+import org.springframework.security.core.userdetails.User;
+import org.springframework.security.core.userdetails.UserDetails;
 import org.springframework.stereotype.Component;
+import org.springframework.web.filter.OncePerRequestFilter;
 
-import java.util.Arrays;
+import java.io.IOException;
+import java.util.List;
 import java.util.Map;
-import java.util.Optional;
 
 @Component
 @RequiredArgsConstructor
-public class Rq {
+public class CustomAuthenticationFilter extends OncePerRequestFilter {
 
-    private final HttpServletRequest request;
-    private final HttpServletResponse response;
     private final MemberService memberService;
+    private final Rq rq;
 
-    public Member getActor() {
+    @Override
+    protected void doFilterInternal(HttpServletRequest request, HttpServletResponse response, FilterChain filterChain) throws ServletException, IOException {
+        logger.debug("CustomAuthenticationFilter is called");
 
-        String authorizationHeader = getHeader("Authorization", "");
+        if(!request.getRequestURI().startsWith("/api/")) {
+            filterChain.doFilter(request, response);
+            return;
+        }
+
+        if(List.of("/api/v1/members/join", "/api/v1/members/login").contains(request.getRequestURI())) {
+            filterChain.doFilter(request, response);
+            return;
+        }
 
         String apiKey;
         String accessToken;
+
+        String authorizationHeader = rq.getHeader("Authorization", "");
 
         if (!authorizationHeader.isBlank()) {
             // 헤더 방식
@@ -39,8 +58,8 @@ public class Rq {
             apiKey = headerAuthorizationBits[1];
             accessToken = headerAuthorizationBits.length == 3 ? headerAuthorizationBits[2] : "";
         } else {
-            apiKey = getCookieValue("apiKey", "");
-            accessToken = getCookieValue("accessToken", "");
+            apiKey = rq.getCookieValue("apiKey", "");
+            accessToken = rq.getCookieValue("accessToken", "");
         }
 
         Member member = null;
@@ -73,57 +92,28 @@ public class Rq {
 
         if (isAccessTokenExists && !isAccessTokenValid) {
             String newAccessToken = memberService.genAccessToken(member);
-            addCookie("accessToken", newAccessToken);
-            setHeader("accessToken", newAccessToken);
+            rq.addCookie("accessToken", newAccessToken);
+            rq.setHeader("accessToken", newAccessToken);
         }
 
-        return member;
-    }
-
-    public void setHeader(String name, String value) {
-        response.setHeader(name, value);
-    }
-
-    public String getHeader(String name, String defaultValue) {
-        return Optional
-                .ofNullable(request.getHeader(name))
-                .filter(headerValue -> !headerValue.isBlank())
-                .orElse(defaultValue);
-    }
-
-    public String getCookieValue(String name, String defaultValue) {
-        return Optional
-                .ofNullable(request.getCookies())
-                .flatMap(
-                        cookies ->
-                                Arrays.stream(cookies)
-                                        .filter(cookie -> cookie.getName().equals(name))
-                                        .map(Cookie::getValue)
-                                        .filter(value -> !value.isBlank())
-                                        .findFirst()
-                )
-                .orElse(defaultValue);
-    }
-
-    public void deleteCookie(String name) {
-        Cookie cookie = new Cookie(name, "");
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setDomain("localhost");
-        cookie.setMaxAge(0);
-
-        response.addCookie(cookie);
-    }
-
-    public void addCookie(String name, String value) {
-
-        Cookie cookie = new Cookie(name, value);
-        cookie.setPath("/");
-        cookie.setHttpOnly(true);
-        cookie.setDomain("localhost");
-
-        response.addCookie(
-                cookie
+        // SecurityContextHolder에 인증데이터 저장
+        UserDetails user = new User(
+                member.getUsername(),
+                member.getPassword(),
+                List.of()
         );
+
+        Authentication authentication = new UsernamePasswordAuthenticationToken(
+                user,
+                null,
+                user.getAuthorities()
+        );
+
+        SecurityContextHolder
+                .getContext()
+                .setAuthentication(authentication);
+
+        filterChain.doFilter(request, response);
     }
+
 }
