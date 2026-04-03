@@ -132,6 +132,8 @@ public class Rq {
         cookie.setPath("/");
         cookie.setHttpOnly(true);
         cookie.setDomain("localhost");
+        cookie.setSecure(true); // http X https O
+        cookie.setAttribute("SameSite", "Strict"); // 완전히 같은 사이트에서만 쿠키 전송 허용.
 
         response.addCookie(
                 cookie
